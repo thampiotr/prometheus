@@ -369,10 +369,12 @@ func (sp *scrapePool) restartLoops(reuseCache bool) {
 		fallbackScrapeProtocol   = sp.config.ScrapeFallbackProtocol.HeaderMediaType()
 		alwaysScrapeClassicHist  = sp.config.AlwaysScrapeClassicHistograms
 		convertClassicHistToNHCB = sp.config.ConvertClassicHistogramsToNHCBEnabled()
+		scraperAcceptHeader      = acceptHeader(sp.config.ScrapeProtocols, sp.escapingScheme)
+		scraperEncoding          = acceptEncodingHeader(enableCompression)
 	)
 
 	sp.targetMtx.Lock()
-
+	sp.logger.Warn("Using acceptHeader %q and encoding %q", scraperAcceptHeader, scraperEncoding)
 	forcedErr := sp.refreshTargetLimitErr()
 	for fp, oldLoop := range sp.loops {
 		var cache *scrapeCache
@@ -391,8 +393,8 @@ func (sp *scrapePool) restartLoops(reuseCache bool) {
 				client:               sp.client,
 				timeout:              targetTimeout,
 				bodySizeLimit:        bodySizeLimit,
-				acceptHeader:         acceptHeader(sp.config.ScrapeProtocols, sp.escapingScheme),
-				acceptEncodingHeader: acceptEncodingHeader(enableCompression),
+				acceptHeader:         scraperAcceptHeader,
+				acceptEncodingHeader: scraperEncoding,
 				metrics:              sp.metrics,
 			}
 			newLoop = sp.newLoop(scrapeLoopOptions{
@@ -525,9 +527,11 @@ func (sp *scrapePool) sync(targets []*Target) {
 		fallbackScrapeProtocol   = sp.config.ScrapeFallbackProtocol.HeaderMediaType()
 		alwaysScrapeClassicHist  = sp.config.AlwaysScrapeClassicHistograms
 		convertClassicHistToNHCB = sp.config.ConvertClassicHistogramsToNHCBEnabled()
+		scraperAcceptHeader      = acceptHeader(sp.config.ScrapeProtocols, sp.escapingScheme)
+		scraperEncoding          = acceptEncodingHeader(enableCompression)
 	)
-
 	sp.targetMtx.Lock()
+	sp.logger.Warn("Using acceptHeader %q and encoding %q", scraperAcceptHeader, scraperEncoding)
 	for _, t := range targets {
 		hash := t.hash()
 
@@ -542,8 +546,8 @@ func (sp *scrapePool) sync(targets []*Target) {
 				client:               sp.client,
 				timeout:              timeout,
 				bodySizeLimit:        bodySizeLimit,
-				acceptHeader:         acceptHeader(sp.config.ScrapeProtocols, sp.escapingScheme),
-				acceptEncodingHeader: acceptEncodingHeader(enableCompression),
+				acceptHeader:         scraperAcceptHeader,
+				acceptEncodingHeader: scraperEncoding,
 				metrics:              sp.metrics,
 			}
 			l := sp.newLoop(scrapeLoopOptions{
@@ -1753,7 +1757,9 @@ loop:
 
 			// Hash label set as it is seen local to the target. Then add target labels
 			// and relabeling and store the final label set.
+			sl.l.Warn("Before sampleMutator", "labels", lset.String())
 			lset = sl.sampleMutator(lset)
+			sl.l.Warn("After sampleMutator", "labels", lset.String())
 
 			// The label set may be set to empty to indicate dropping.
 			if lset.IsEmpty() {
@@ -1766,7 +1772,8 @@ loop:
 				break loop
 			}
 			if !lset.IsValid(sl.validationScheme) {
-				err = fmt.Errorf("invalid metric name or label names: %s", lset.String())
+				sl.l.Warn("Invalid metric name or label names", "validation_scheme", sl.validationScheme, "escaping_scheme", sl.escapingScheme, "content_type", contentType, "labels", lset.String())
+				err = fmt.Errorf("invalid metric name or label names with validation scheme %q and escaping scheme %q and content-type %q: %s", sl.validationScheme, sl.escapingScheme, contentType, lset.String())
 				break loop
 			}
 
