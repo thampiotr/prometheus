@@ -1757,9 +1757,9 @@ loop:
 
 			// Hash label set as it is seen local to the target. Then add target labels
 			// and relabeling and store the final label set.
-			sl.l.Warn("Before sampleMutator", "labels", lset.String())
+			// sl.l.Debug("Before sampleMutator", "labels", lset.String())
 			lset = sl.sampleMutator(lset)
-			sl.l.Warn("After sampleMutator", "labels", lset.String())
+			// sl.l.Debug("After sampleMutator", "labels", lset.String())
 
 			// The label set may be set to empty to indicate dropping.
 			if lset.IsEmpty() {
