@@ -374,7 +374,7 @@ func (sp *scrapePool) restartLoops(reuseCache bool) {
 	)
 
 	sp.targetMtx.Lock()
-	sp.logger.Warn("Using acceptHeader %q and encoding %q", scraperAcceptHeader, scraperEncoding)
+	sp.logger.Warn("Restarting loops", "acceptHeader", scraperAcceptHeader, "encoding", scraperEncoding)
 	forcedErr := sp.refreshTargetLimitErr()
 	for fp, oldLoop := range sp.loops {
 		var cache *scrapeCache
@@ -531,7 +531,7 @@ func (sp *scrapePool) sync(targets []*Target) {
 		scraperEncoding          = acceptEncodingHeader(enableCompression)
 	)
 	sp.targetMtx.Lock()
-	sp.logger.Warn("Using acceptHeader %q and encoding %q", scraperAcceptHeader, scraperEncoding)
+	sp.logger.Warn("Syncing targets", "acceptHeader", scraperAcceptHeader, "encoding", scraperEncoding)
 	for _, t := range targets {
 		hash := t.hash()
 
